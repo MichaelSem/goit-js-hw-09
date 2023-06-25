@@ -1,32 +1,43 @@
-// Import library
-import getRandomHexColor from './randomHexColor.js';
+import '../css/common.css';
 
-//Get button start/stop element
-const dataStartRef = document.querySelector('[data-start]');
-const dataStopRef = document.querySelector('[data-stop]');
-const bodyRef = document.querySelector('body');
-// values
-let timerId = null;
+const bodyEl = document.querySelector('body');
+const startEl = document.querySelector('button[data-start]');
+const stopEl = document.querySelector('button[data-stop]');
+stopEl.disabled = true;
+let intervalID = null;
 
-// Add event listener start/stop on btn start/stop
-dataStartRef.addEventListener('click', onStart);
-dataStopRef.addEventListener('click', onStop);
+const randomBodyColorGenerator = {
+  DELAY: 1000,
 
-// Function start event listener
-function onStart() {
-  timerId = setInterval(getBgColor, 1000);
+  getRandomHexColor() {
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+  },
 
-  dataStartRef.toggleAttribute('disabled');
+  interval() {
+    intervalID = setInterval(() => {
+      changeBgColorRandom();
+    }, this.DELAY);
+    stopEl.disabled = false;
+  },
+
+  start() {
+    startEl.addEventListener('click', () => {
+      this.interval();
+      startEl.disabled = true;
+      stopEl.disabled = false;
+    });
+    stopEl.addEventListener('click', this.stop);
+  },
+
+  stop() {
+    clearInterval(intervalID);
+    stopEl.disabled = true;
+    startEl.disabled = false;
+  },
+};
+
+function changeBgColorRandom() {
+  bodyEl.style.backgroundColor = `${randomBodyColorGenerator.getRandomHexColor()}`;
 }
 
-// Function stop event listener
-function onStop() {
-  clearInterval(timerId);
-
-  dataStartRef.removeAttribute('disabled');
-}
-
-// Function set random bg color
-function getBgColor() {
-  bodyRef.style.backgroundColor = getRandomHexColor();
-}
+randomBodyColorGenerator.start();
