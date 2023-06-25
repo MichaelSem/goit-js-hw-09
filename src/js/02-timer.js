@@ -1,15 +1,70 @@
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
-import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.min.css";
+import { Notify } from 'notiflix/build/notiflix-notify-aio'; 
 
-const startBtn = document.querySelector('[data-start]');
-const daysRef = document.querySelector('[data-days]');
-const hoursRef = document.querySelector('[data-hours]');
-const minutesRef = document.querySelector('[data-minutes]');
-const secondsRef = document.querySelector('[data-seconds]');
-let timerId = null;
+const btnStartEl = document.querySelector("button[data-start]");
+const dateTimePicker = document.querySelector("#datetime-picker");
+const dataDaysEl = document.querySelector("span[data-days]");
+const dataHoursEl = document.querySelector("span[data-hours]");
+const dataMinutesEl = document.querySelector("span[data-minutes]");
+const dataSecondsEl = document.querySelector("span[data-seconds]");
 
-startBtn.setAttribute('disabled', true);
+btnStartEl.setAttribute("disabled", true);
+
+const TIMER_INTERVAL = 1000;
+
+let currentDate = new Date();
+let selectedDate = null;
+let remainingTime = null;
+
+const options = {
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    selectedDate = selectedDates[0];
+    remainingTime = selectedDate - currentDate;
+      
+      if (remainingTime > 0) {
+        btnStartEl.removeAttribute("disabled");
+      } 
+      else { 
+        Notify.failure('Please choose a date in the future', {timeout: 2000});
+        btnStartEl.setAttribute("disabled", true);
+      }
+  },
+};
+
+flatpickr("#datetime-picker", options);
+
+btnStartEl.addEventListener('click', habdleBtnStartClick);
+
+function habdleBtnStartClick() {
+    updateInterface(addLeadingZero(convertMs(remainingTime)));
+    runTimer();
+    btnStartEl.setAttribute("disabled", true);
+    dateTimePicker.setAttribute("disabled", true);
+}
+
+let intervalId = null;
+
+function runTimer() {
+    intervalId = setInterval(() => {
+        remainingTime -= TIMER_INTERVAL;
+
+        updateInterface(addLeadingZero(convertMs(remainingTime)));
+
+        if (remainingTime < 1000) {
+            stopTimer();
+        }
+
+    }, TIMER_INTERVAL);
+}
+
+function stopTimer() {
+    clearInterval(intervalId);
+}
 
 function convertMs(ms) {
   const second = 1000;
@@ -25,54 +80,25 @@ function convertMs(ms) {
   return { days, hours, minutes, seconds };
 }
 
-const addLeadingZero = value => String(value).padStart(2, 0);
+function addLeadingZero({ days, hours, minutes, seconds }) { 
+    const formatedDays = days.toString().padStart(2, "0");
+    const formatedHours = hours.toString().padStart(2, "0");
+    const formatedMinutes = minutes.toString().padStart(2, "0");
+    const formatedSeconds = seconds.toString().padStart(2, "0");
 
-const options = {
-  enableTime: true,
-  time_24hr: true,
-  defaultDate: new Date(),
-  minuteIncrement: 1,
-  onClose(selectedDates) {
-    if (selectedDates[0] < new Date()) {
-      Notify.failure('Please choose a date in the future');
-      return;
-    }
-    startBtn.removeAttribute('disabled');
-
-    const showTimer = () => {
-      const now = new Date();
-      localStorage.setItem('selectedData', selectedDates[0]);
-      const selectData = new Date(localStorage.getItem('selectedData'));
-
-      if (!selectData) return;
-
-      const diff = selectData - now;
-      const { days, hours, minutes, seconds } = convertMs(diff);
-      daysRef.textContent = days;
-      hoursRef.textContent = addLeadingZero(hours);
-      minutesRef.textContent = addLeadingZero(minutes);
-      secondsRef.textContent = addLeadingZero(seconds);
-
-      if (
-        daysRef.textContent === '0' &&
-        hoursRef.textContent === '00' &&
-        minutesRef.textContent === '00' &&
-        secondsRef.textContent === '00'
-      ) {
-        clearInterval(timerId);
-      }
-    };
-
-    const onClick = () => {
-      if (timerId) {
-        clearInterval(timerId);
-      }
-      showTimer();
-      timerId = setInterval(showTimer, 1000);
-    };
-
-    startBtn.addEventListener('click', onClick);
-  },
+    return {formatedDays, formatedHours, formatedMinutes, formatedSeconds};
 };
 
-flatpickr('#datetime-picker', { ...options });
+function updateInterface({ formatedDays, formatedHours, formatedMinutes, formatedSeconds }) {
+    dataDaysEl.textContent = formatedDays;
+    dataHoursEl.textContent = formatedHours;
+    dataMinutesEl.textContent = formatedMinutes;
+    dataSecondsEl.textContent = formatedSeconds;
+}
+
+
+
+
+
+
+
